@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>POKÉ RUN！— 寶可夢 2D 跑酷 (Retro Polished Pixel Art Ed.)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+TC:wght@500;700;900&display=swap');
+
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', 'Press Start 2P', sans-serif;
+            background-color: #0b0f19;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .font-pixel {
+            font-family: 'Press Start 2P', monospace;
+        }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #facc15;
+            border-radius: 4px;
+        }
+
+        /* Retro Button Style */
+        .btn-retro {
+            position: relative;
+            box-shadow: inset -4px -4px 0px 0px rgba(0,0,0,0.5), inset 4px 4px 0px 0px rgba(255,255,255,0.4);
+            transition: all 0.08s ease;
+        }
+        .btn-retro:active {
+            box-shadow: inset 2px 2px 0px 0px rgba(0,0,0,0.6);
+            transform: translateY(2px);
+        }
+
+        /* 16:9 Aspect Ratio Frame */
+        #game-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 56.25vw;
+            max-width: 1120px;
+            max-height: 630px;
+            background: #000;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.95), 0 0 35px rgba(250, 204, 21, 0.2);
+            border: 4px solid #1e293b;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+
+        .bg-glass {
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-wrapper">
+        <!-- Main Game Canvas -->
+        <canvas id="gameCanvas" width="960" height="540"></canvas>
+
+        <!-- UI: START MENU -->
+        <div id="menuScreen" class="absolute inset-0 bg-glass flex flex-col justify-between p-6 z-20">
+            <!-- Header -->
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 bg-red-600 rounded-full border-4 border-slate-900 flex items-center justify-center shadow-lg relative overflow-hidden">
+                        <div class="absolute bottom-0 w-full h-1/2 bg-white"></div>
+                        <div class="w-4 h-4 bg-white rounded-full border-2 border-slate-900 z-10"></div>
+                    </div>
+                    <h1 class="text-3xl md:text-4xl font-black text-yellow-400 tracking-wider font-pixel drop-shadow-[0_4px_0_rgba(0,0,0,1)]">
+                        POKÉ RUN！<span class="text-xs bg-yellow-400 text-slate-950 font-sans px-2 py-0.5 rounded-full ml-1">Retro Pixel</span>
+                    </h1>
+                </div>
+                <div class="flex items-center gap-4 text-xs md:text-sm font-bold bg-slate-900 px-4 py-2 rounded-xl border border-slate-700 shadow-md">
+                    <span class="text-amber-400">🏆 HIGH: <span id="menuHighScore">0</span></span>
+                    <span class="text-red-400">🔴 BALLS: <span id="menuBalls">10</span></span>
+                </div>
+            </div>
+
+            <!-- Active Runner Showcase -->
+            <div class="flex flex-col md:flex-row items-center justify-around my-auto gap-6">
+                <div class="flex flex-col items-center">
+                    <div class="w-44 h-44 bg-slate-900/95 rounded-2xl border-4 border-yellow-400 flex items-center justify-center p-2 relative shadow-2xl">
+                        <canvas id="showcaseCanvas" width="128" height="128" class="w-36 h-36"></canvas>
+                        <span id="showcaseRarity" class="absolute top-2 right-2 px-2.5 py-1 text-[10px] font-bold rounded bg-yellow-400 text-slate-950 font-pixel shadow">COMMON</span>
+                    </div>
+                    <h2 id="showcaseName" class="text-xl font-bold mt-3 text-yellow-300">皮卡丘 Pikachu</h2>
+                    <p id="showcaseSkill" class="text-xs text-slate-300 mt-1 bg-slate-900 px-3.5 py-1 rounded-full border border-slate-700 shadow">⚡ 特殊能力：電光一閃衝刺</p>
+                </div>
+
+                <!-- Menu Buttons -->
+                <div class="flex flex-col gap-3.5 w-68">
+                    <button id="btnStart" class="btn-retro bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3.5 px-6 rounded-xl text-lg flex items-center justify-center gap-2 font-pixel">
+                        ► 開始跑酷
+                    </button>
+                    <button id="btnDex" class="btn-retro bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 px-6 rounded-xl text-base flex items-center justify-center gap-2">
+                        📖 寶可夢圖鑑 / 角色選擇
+                    </button>
+                    <button id="btnInstructions" class="btn-retro bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-xl text-base flex items-center justify-center gap-2">
+                        🎮 操作與玩法說明
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-center text-xs text-slate-400 font-pixel">
+                PRESS [SPACE] OR CLICK START TO RUN
+            </div>
+        </div>
+
+        <!-- UI: POKEDEX & CHARACTER SELECTION MODAL -->
+        <div id="dexModal" class="absolute inset-0 bg-slate-950/95 z-30 hidden flex-col p-6">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-800">
+                <div>
+                    <h2 class="text-2xl font-bold text-yellow-400 flex items-center gap-2 font-pixel">
+                        寶可夢圖鑑 (<span id="unlockedCount">1</span>/20)
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1">點擊已解鎖的寶可夢可直接更換為跑酷主角！</p>
+                </div>
+                <button id="btnCloseDex" class="btn-retro bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-lg text-sm">
+                    ✕ 關閉 (ESC)
+                </button>
+            </div>
+
+            <div id="dexGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3.5 my-4 overflow-y-auto custom-scrollbar pr-2 flex-grow">
+                <!-- Dynamically populated 20 Pokémon cards -->
+            </div>
+        </div>
+
+        <!-- UI: INSTRUCTIONS MODAL -->
+        <div id="instructionsModal" class="absolute inset-0 bg-slate-950/95 z-30 hidden flex-col p-6">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-800">
+                <h2 class="text-xl font-bold text-indigo-400 font-pixel">🎮 遊戲操作與寶可夢捕捉指南</h2>
+                <button id="btnCloseInstructions" class="btn-retro bg-rose-600 hover:bg-rose-500 text-white font-bold px-4 py-2 rounded-lg text-sm">
+                    ✕ 關閉
+                </button>
+            </div>
+            <div class="my-auto space-y-4 text-sm text-slate-200 max-w-2xl mx-auto">
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                    <h3 class="font-bold text-amber-400 mb-2">鍵盤與觸控操作</h3>
+                    <ul class="grid grid-cols-2 gap-2 text-xs">
+                        <li><b class="text-white">Space / ↑ 鍵：</b> 跳躍 (支援二段跳)</li>
+                        <li><b class="text-white">↓ 鍵：</b> 蹲下俯衝</li>
+                        <li><b class="text-white">X 鍵 / 畫面按鈕：</b> 投擲精靈球捕捉寶可夢</li>
+                        <li><b class="text-white">R 鍵：</b> 快速重新開始</li>
+                    </ul>
+                </div>
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                    <h3 class="font-bold text-amber-400 mb-2">隨機遭遇與精靈球捕捉</h3>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        奔跑途中將隨機遭遇 20 種經典寶可夢！當野生寶可夢出現時，按下 <span class="text-red-400 font-bold">X 鍵</span> 投擲精靈球。捕捉成功即永久解鎖並可隨時在圖鑑中更換為主角！
+                    </p>
+                </div>
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800">
+                    <h3 class="font-bold text-amber-400 mb-2">道具有效加成</h3>
+                    <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div class="bg-slate-800 p-2 rounded">🔴 精靈球 (+3 顆)</div>
+                        <div class="bg-slate-800 p-2 rounded">🪙 金幣 (+100 分)</div>
+                        <div class="bg-slate-800 p-2 rounded">🛡️ 護盾 (抵擋碰撞)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- UI: IN-GAME HUD -->
+        <div id="hudOverlay" class="absolute inset-0 pointer-events-none hidden justify-between p-4 z-10">
+            <div class="flex flex-col gap-2">
+                <div class="bg-slate-900/90 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-2">
+                    <span id="hudSceneBadge" class="text-xs font-bold text-emerald-400">🌿 綠色草原</span>
+                    <span id="hudSkillBadge" class="text-[10px] text-amber-300 bg-amber-950/80 px-2 py-0.5 rounded border border-amber-600">⚡ 標準跑者</span>
+                </div>
+                <div id="encounterBanner" class="hidden animate-bounce bg-red-600 text-white font-bold text-xs px-3 py-1.5 rounded-lg border border-white shadow-lg">
+                    ⚠️ 野生 <span id="encounterName" class="text-yellow-300">寶可夢</span> 出現了！ [按 X 捕捉]
+                </div>
+            </div>
+
+            <div class="flex flex-col items-end gap-1">
+                <div class="bg-slate-900/90 border border-slate-700 px-4 py-2 rounded-xl text-right">
+                    <div class="text-[10px] text-slate-400 font-pixel">SCORE</div>
+                    <div id="hudScore" class="text-2xl font-bold font-pixel text-yellow-400">000000</div>
+                    <div class="text-[10px] text-amber-500 mt-0.5 font-pixel">HI: <span id="hudHighScore">000000</span></div>
+                </div>
+                <div class="bg-slate-900/90 border border-slate-700 px-3 py-1 rounded-lg flex items-center gap-2 text-xs font-bold">
+                    <span class="text-red-500 text-base">🔴</span> <span id="hudBalls">10</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- MOBILE TOUCH CONTROLS -->
+        <div id="touchControls" class="absolute bottom-4 left-4 right-4 flex justify-between pointer-events-auto z-10 md:hidden hidden opacity-90">
+            <div class="flex gap-2">
+                <button id="touchDuck" class="w-16 h-16 bg-slate-800 active:bg-slate-600 text-white rounded-full border-2 border-slate-500 font-bold text-xl flex items-center justify-center">
+                    ↓
+                </button>
+            </div>
+            <div class="flex gap-3">
+                <button id="touchCatch" class="w-16 h-16 bg-red-600 active:bg-red-500 text-white rounded-full border-2 border-white font-bold text-sm shadow-lg flex items-center justify-center">
+                    🔴 捕捉
+                </button>
+                <button id="touchJump" class="w-16 h-16 bg-amber-500 active:bg-amber-400 text-slate-950 rounded-full border-2 border-yellow-200 font-bold text-xl shadow-lg flex items-center justify-center">
+                    ↑
+                </button>
+            </div>
+        </div>
+
+        <!-- UI: GAME OVER SCREEN -->
+        <div id="gameOverScreen" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md z-20 hidden flex-col items-center justify-center p-6">
+            <h1 class="text-4xl font-black text-red-500 font-pixel mb-2 tracking-wider animate-pulse">GAME OVER</h1>
+            <p class="text-slate-300 text-sm mb-6">不小心碰撞障礙物了！調整狀態再來一次吧！</p>
+
+            <div class="bg-slate-900 border-2 border-slate-700 rounded-2xl p-6 w-full max-w-md mb-6 space-y-3 font-pixel text-xs">
+                <div class="flex justify-between items-center text-slate-300">
+                    <span>FINAL SCORE:</span>
+                    <span id="goScore" class="text-xl text-yellow-400 font-bold">0</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-400">
+                    <span>HIGH SCORE:</span>
+                    <span id="goHighScore" class="text-amber-500">0</span>
+                </div>
+                <hr class="border-slate-800">
+                <div class="flex justify-between items-center text-slate-300">
+                    <span>COINS COLLECTED:</span>
+                    <span id="goCoins" class="text-yellow-300">🪙 0</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-300">
+                    <span>POKEMON CAUGHT:</span>
+                    <span id="goCaught" class="text-emerald-400">0</span>
+                </div>
+            </div>
+
+            <div class="flex gap-4">
+                <button id="btnRestart" class="btn-retro bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3 px-6 rounded-xl font-pixel text-sm flex items-center gap-2">
+                    🔄 再試一次 (R)
+                </button>
+                <button id="btnMenu" class="btn-retro bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 px-6 rounded-xl text-sm">
+                    🏠 主選單
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN GAME SCRIPT -->
+    <script>
+        /**
+         * POKÉ RUN！— Retro Polished Pixel Art Edition
+         * Procedural Sprite Generator & 2D Endless Runner Engine
+         */
+
+        // --- RETRO SOUND SYNTHESIZER ---
+        class SoundFX {
+            constructor() { this.ctx = null; }
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            playTone(freq, type = 'sine', duration = 0.1, vol = 0.1) {
+                this.init();
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e){}
+            }
+            jump() {
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(500, this.ctx.currentTime + 0.12);
+                gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.12);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.12);
+            }
+            coin() {
+                this.playTone(1046.50, 'sine', 0.08, 0.1);
+                setTimeout(() => this.playTone(1318.51, 'sine', 0.12, 0.1), 75);
+            }
+            catchSuccess() {
+                this.playTone(523.25, 'triangle', 0.1, 0.15);
+                setTimeout(() => this.playTone(659.25, 'triangle', 0.1, 0.15), 90);
+                setTimeout(() => this.playTone(783.99, 'triangle', 0.1, 0.15), 180);
+                setTimeout(() => this.playTone(1046.50, 'triangle', 0.25, 0.2), 270);
+            }
+            hit() {
+                this.playTone(110, 'sawtooth', 0.22, 0.2);
+            }
+        }
+        const sfx = new SoundFX();
+
+        // --- POKEMON DATABASE (20 Characters) ---
+        const POKEMON_DATA = [
+            { id: 1, name: "皮卡丘", enName: "Pikachu", type: "Electric", rarity: "Common", skill: "電光一閃：速度加成", catchRate: 0.8 },
+            { id: 2, name: "伊布", enName: "Eevee", type: "Normal", rarity: "Common", skill: "適應力：雙倍金幣", catchRate: 0.8 },
+            { id: 3, name: "小火龍", enName: "Charmander", type: "Fire", rarity: "Rare", skill: "烈火護盾：抵擋碰撞", catchRate: 0.6 },
+            { id: 4, name: "傑尼龜", enName: "Squirtle", type: "Water", rarity: "Rare", skill: "水流護甲：延長護盾", catchRate: 0.6 },
+            { id: 5, name: "妙蛙種子", enName: "Bulbasaur", type: "Grass", rarity: "Rare", skill: "茂盛：道具出現率提升", catchRate: 0.6 },
+            { id: 6, name: "卡比獸", enName: "Snorlax", type: "Normal", rarity: "Rare", skill: "厚脂肪：降低衝擊", catchRate: 0.5 },
+            { id: 7, name: "耿鬼", enName: "Gengar", type: "Ghost", rarity: "Epic", skill: "影子潛行：穿越障礙", catchRate: 0.35 },
+            { id: 8, name: "夢幻", enName: "Mew", type: "Psychic", rarity: "Legendary", skill: "幻象磁鐵：自動吸金幣", catchRate: 0.15 },
+            { id: 9, name: "路卡利歐", enName: "Lucario", type: "Fighting", rarity: "Epic", skill: "波導加成：雙倍分數", catchRate: 0.35 },
+            { id: 10, name: "波加曼", enName: "Piplup", type: "Water", rarity: "Common", skill: "冰上滑行：落地平滑", catchRate: 0.8 },
+            { id: 11, name: "可達鴨", enName: "Psyduck", type: "Water", rarity: "Common", skill: "念力頭痛：隨機消滅", catchRate: 0.75 },
+            { id: 12, name: "胖丁", enName: "Jigglypuff", type: "Normal", rarity: "Common", skill: "搖籃曲：滯空時間長", catchRate: 0.8 },
+            { id: 13, name: "快龍", enName: "Dragonite", type: "Dragon", rarity: "Epic", skill: "神速滑翔：基礎加速", catchRate: 0.3 },
+            { id: 14, name: "六尾", enName: "Vulpix", type: "Fire", rarity: "Common", skill: "溫暖氣場：額外分數", catchRate: 0.75 },
+            { id: 15, name: "謎擬Q", enName: "Mimikyu", type: "Ghost", rarity: "Rare", skill: "畫皮：抵擋失敗", catchRate: 0.5 },
+            { id: 16, name: "沙奈朵", enName: "Gardevoir", type: "Psychic", rarity: "Epic", skill: "瞬間移動：稀有率提升", catchRate: 0.35 },
+            { id: 17, name: "新葉喵", enName: "Sprigatito", type: "Grass", rarity: "Common", skill: "綠草疾走：彈跳回復快", catchRate: 0.8 },
+            { id: 18, name: "呆火鱷", enName: "Fuecoco", type: "Fire", rarity: "Common", skill: "火花衝刺：噴射爆發", catchRate: 0.8 },
+            { id: 19, name: "潤水鴨", enName: "Quaxly", type: "Water", rarity: "Common", skill: "水流俯衝：迅速貼地", catchRate: 0.8 },
+            { id: 20, name: "超夢", enName: "Mewtwo", type: "Psychic", rarity: "Legendary", skill: "精神強念：護盾氣場", catchRate: 0.1 }
+        ];
+
+        // --- RETRO POLISHED PIXEL ART PROCEDURAL RENDER ENGINE ---
+        // Clean Black Outlines, Crisp Pixels, Cute Proportions & 8-Frame Animation
+        function drawRetroPixelPokemon(ctx, id, x, y, size = 64, frame = 0, action = 'run') {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const scale = size / 40;
+            ctx.scale(scale, scale);
+
+            const cycle = (frame % 8) / 8;
+            let headOffsetY = Math.sin(cycle * Math.PI * 2) * 1.5;
+            let legA = Math.sin(cycle * Math.PI * 2) * 4;
+            let legB = -legA;
+            let tailSway = Math.cos(cycle * Math.PI * 2) * 2;
+
+            if (action === 'jump') { headOffsetY = -4; legA = -3; legB = 3; }
+            if (action === 'duck') { headOffsetY = 5; legA = 0; legB = 0; }
+            if (action === 'hurt') { headOffsetY = 2; }
+
+            ctx.translate(0, headOffsetY);
+
+            const drawPixelBlock = (pxX, pxY, w, h, fillCol) => {
+                // Crisp black outline backdrop
+                ctx.fillStyle = "#0f172a";
+                ctx.fillRect(Math.floor(pxX - 1), Math.floor(pxY - 1), Math.floor(w + 2), Math.floor(h + 2));
+                // Fill color
+                ctx.fillStyle = fillCol;
+                ctx.fillRect(Math.floor(pxX), Math.floor(pxY), Math.floor(w), Math.floor(h));
+            };
+
+            const drawEye = (pxX, pxY) => {
+                ctx.fillStyle = "#0f172a";
+                ctx.fillRect(pxX, pxY, 3, 4);
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(pxX, pxY, 1, 2);
+            };
+
+            const drawCheek = (pxX, pxY, col = "#ef4444") => {
+                ctx.fillStyle = col;
+                ctx.fillRect(pxX, pxY, 4, 3);
+            };
+
+            switch(id) {
+                case 1: // Pikachu
+                    drawPixelBlock(2, 14 - tailSway, 6, 4, "#d97706");
+                    drawPixelBlock(0, 8 - tailSway, 5, 8, "#facc15");
+                    drawPixelBlock(4, 4 - tailSway, 6, 5, "#fef08a");
+                    drawPixelBlock(9 + tailSway, 1, 4, 11, "#facc15");
+                    drawPixelBlock(10 + tailSway, 1, 2, 4, "#0f172a");
+                    drawPixelBlock(27 - tailSway, 1, 4, 11, "#facc15");
+                    drawPixelBlock(27 - tailSway, 1, 2, 4, "#0f172a");
+                    drawPixelBlock(9, 10, 22, 22, "#facc15");
+                    drawCheek(8, 22); drawCheek(28, 22);
+                    drawEye(14, 16); drawEye(23, 16);
+                    ctx.fillStyle = "#451a03"; ctx.fillRect(19, 20, 2, 1);
+                    drawPixelBlock(11 + legA, 30, 5, 6, "#eab308");
+                    drawPixelBlock(24 + legB, 30, 5, 6, "#eab308");
+                    break;
+
+                case 2: // Eevee
+                    drawPixelBlock(1, 10 + tailSway, 9, 12, "#fef08a");
+                    drawPixelBlock(4, 14 + tailSway, 8, 10, "#92400e");
+                    drawPixelBlock(6 - tailSway, 1, 5, 12, "#78350f");
+                    drawPixelBlock(7 - tailSway, 3, 3, 8, "#fbcfe8");
+                    drawPixelBlock(29 + tailSway, 1, 5, 12, "#78350f");
+                    drawPixelBlock(30 + tailSway, 3, 3, 8, "#fbcfe8");
+                    drawPixelBlock(10, 10, 20, 20, "#92400e");
+                    drawPixelBlock(8, 18, 24, 8, "#fef08a");
+                    drawEye(15, 15); drawEye(23, 15);
+                    ctx.fillStyle = "#000000"; ctx.fillRect(19, 19, 2, 2);
+                    drawPixelBlock(12 + legA, 28, 4, 7, "#78350f");
+                    drawPixelBlock(24 + legB, 28, 4, 7, "#78350f");
+                    break;
+
+                case 3: // Charmander
+                    drawPixelBlock(2, 18, 8, 5, "#c2410c");
+                    drawPixelBlock(-1, 12, 6, 6, (frame % 2 === 0 ? "#ef4444" : "#facc15"));
+                    drawPixelBlock(10, 8, 20, 23, "#f97316");
+                    drawPixelBlock(14, 16, 12, 12, "#fef08a");
+                    drawEye(15, 14); drawEye(23, 14);
+                    drawPixelBlock(12 + legA, 29, 5, 6, "#c2410c");
+                    drawPixelBlock(23 + legB, 29, 5, 6, "#c2410c");
+                    break;
+
+                case 4: // Squirtle
+                    drawPixelBlock(7, 14, 5, 14, "#78350f");
+                    drawPixelBlock(10, 8, 20, 23, "#38bdf8");
+                    drawPixelBlock(14, 16, 12, 12, "#fef08a");
+                    drawEye(15, 14); drawEye(23, 14);
+                    drawPixelBlock(3, 20, 6, 5, "#38bdf8");
+                    drawPixelBlock(12 + legA, 29, 5, 6, "#0284c7");
+                    drawPixelBlock(23 + legB, 29, 5, 6, "#0284c7");
+                    break;
+
+                case 5: // Bulbasaur
+                    drawPixelBlock(14, 3, 12, 10, "#15803d");
+                    drawPixelBlock(8, 11, 24, 20, "#4ade80");
+                    drawPixelBlock(11, 15, 4, 4, "#166534");
+                    drawEye(14, 15); drawEye(24, 15);
+                    drawPixelBlock(10 + legA, 28, 6, 6, "#166534");
+                    drawPixelBlock(24 + legB, 28, 6, 6, "#166534");
+                    break;
+
+                case 6: // Snorlax
+                    drawPixelBlock(7, 6, 26, 26, "#334155");
+                    drawPixelBlock(11, 10, 18, 18, "#fef3c7");
+                    drawPixelBlock(8, 2, 5, 5, "#334155"); drawPixelBlock(27, 2, 5, 5, "#334155");
+                    ctx.fillStyle = "#0f172a"; ctx.fillRect(14, 15, 4, 2); ctx.fillRect(22, 15, 4, 2);
+                    drawPixelBlock(9 + legA, 29, 8, 5, "#fef3c7");
+                    drawPixelBlock(23 + legB, 29, 8, 5, "#fef3c7");
+                    break;
+
+                case 7: // Gengar
+                    drawPixelBlock(6, 2, 5, 6, "#7e22ce"); drawPixelBlock(29, 2, 5, 6, "#7e22ce");
+                    drawPixelBlock(7, 6, 26, 23, "#7e22ce");
+                    drawPixelBlock(13, 13, 4, 4, "#dc2626"); drawPixelBlock(23, 13, 4, 4, "#dc2626");
+                    drawPixelBlock(14, 21, 12, 3, "#ffffff");
+                    drawPixelBlock(10 + legA, 27, 5, 6, "#581c87");
+                    drawPixelBlock(25 + legB, 27, 5, 6, "#581c87");
+                    break;
+
+                case 8: // Mew
+                    drawPixelBlock(1, 20, 10, 3, "#f472b6");
+                    drawPixelBlock(1, 10, 3, 10, "#f472b6");
+                    drawPixelBlock(11, 8, 18, 20, "#f472b6");
+                    drawEye(16, 13); drawEye(23, 13);
+                    drawPixelBlock(12 + legA, 26, 4, 7, "#db2777");
+                    drawPixelBlock(22 + legB, 26, 4, 7, "#db2777");
+                    break;
+
+                case 9: // Lucario
+                    drawPixelBlock(5, 2, 4, 10, "#0f172a"); drawPixelBlock(31, 2, 4, 10, "#0f172a");
+                    drawPixelBlock(11, 6, 18, 24, "#0284c7");
+                    drawPixelBlock(15, 14, 10, 8, "#fef08a");
+                    drawEye(15, 10); drawEye(23, 10);
+                    drawPixelBlock(12 + legA, 28, 5, 7, "#0f172a");
+                    drawPixelBlock(23 + legB, 28, 5, 7, "#0f172a");
+                    break;
+
+                case 10: // Piplup
+                    drawPixelBlock(10, 8, 20, 21, "#06b6d4");
+                    drawPixelBlock(13, 8, 14, 13, "#ffffff");
+                    drawPixelBlock(18, 15, 4, 4, "#f97316");
+                    drawEye(15, 11); drawEye(23, 11);
+                    drawPixelBlock(12 + legA, 27, 5, 5, "#f97316");
+                    drawPixelBlock(23 + legB, 27, 5, 5, "#f97316");
+                    break;
+
+                case 11: // Psyduck
+                    ctx.fillStyle = "#000000"; ctx.fillRect(19, 1, 2, 6);
+                    drawPixelBlock(10, 7, 20, 23, "#fbbf24");
+                    drawPixelBlock(15, 16, 10, 6, "#fef08a");
+                    drawPixelBlock(14, 12, 3, 3, "#ffffff"); drawPixelBlock(23, 12, 3, 3, "#ffffff");
+                    ctx.fillStyle = "#000000"; ctx.fillRect(15, 13, 1, 1); ctx.fillRect(24, 13, 1, 1);
+                    drawPixelBlock(12 + legA, 28, 5, 5, "#d97706");
+                    drawPixelBlock(23 + legB, 28, 5, 5, "#d97706");
+                    break;
+
+                case 12: // Jigglypuff
+                    drawPixelBlock(8, 6, 24, 22, "#fda4af");
+                    drawPixelBlock(6, 2, 5, 5, "#fda4af"); drawPixelBlock(29, 2, 5, 5, "#fda4af");
+                    drawPixelBlock(17, 4, 6, 5, "#f43f5e");
+                    drawPixelBlock(12, 11, 5, 7, "#0284c7"); drawPixelBlock(23, 11, 5, 7, "#0284c7");
+                    ctx.fillStyle = "#ffffff"; ctx.fillRect(13, 12, 2, 3); ctx.fillRect(24, 12, 2, 3);
+                    drawPixelBlock(11 + legA, 26, 5, 5, "#e11d48");
+                    drawPixelBlock(24 + legB, 26, 5, 5, "#e11d48");
+                    break;
+
+                case 13: // Dragonite
+                    drawPixelBlock(3, 8, 6, 10, "#4ade80"); drawPixelBlock(31, 8, 6, 10, "#4ade80");
+                    drawPixelBlock(10, 6, 20, 24, "#fb923c");
+                    drawPixelBlock(14, 12, 12, 14, "#fef08a");
+                    drawEye(15, 10); drawEye(23, 10);
+                    drawPixelBlock(12 + legA, 28, 5, 6, "#c2410c");
+                    drawPixelBlock(23 + legB, 28, 5, 6, "#c2410c");
+                    break;
+
+                case 14: // Vulpix
+                    drawPixelBlock(2, 12 + tailSway, 9, 12, "#f97316");
+                    drawPixelBlock(11, 8, 18, 20, "#ea580c");
+                    drawPixelBlock(15, 3, 10, 6, "#f97316");
+                    drawEye(16, 12); drawEye(23, 12);
+                    drawPixelBlock(12 + legA, 26, 4, 6, "#9a3412");
+                    drawPixelBlock(22 + legB, 26, 4, 6, "#9a3412");
+                    break;
+
+                case 15: // Mimikyu
+                    drawPixelBlock(2, 14, 6, 12, "#78350f");
+                    drawPixelBlock(10, 8, 20, 21, "#fef08a");
+                    drawPixelBlock(8, 2, 5, 8, "#fef08a"); drawPixelBlock(27, 4, 5, 6, "#fef08a");
+                    ctx.fillStyle = "#000000"; ctx.fillRect(14, 14, 3, 3); ctx.fillRect(23, 14, 3, 3);
+                    ctx.fillRect(17, 20, 6, 2);
+                    drawPixelBlock(10 + legA, 27, 20, 3, "#000000");
+                    break;
+
+                case 16: // Gardevoir
+                    drawPixelBlock(12, 3, 16, 8, "#4ade80");
+                    drawPixelBlock(10, 10, 20, 20, "#ffffff");
+                    drawPixelBlock(19, 12, 3, 6, "#ef4444");
+                    drawEye(15, 9); drawEye(22, 9);
+                    drawPixelBlock(13 + legA, 28, 4, 6, "#22c55e");
+                    drawPixelBlock(23 + legB, 28, 4, 6, "#22c55e");
+                    break;
+
+                case 17: // Sprigatito
+                    drawPixelBlock(7, 2, 6, 6, "#15803d"); drawPixelBlock(27, 2, 6, 6, "#15803d");
+                    drawPixelBlock(10, 8, 20, 20, "#4ade80");
+                    drawEye(14, 12); drawEye(23, 12);
+                    drawPixelBlock(12 + legA, 26, 4, 6, "#166534");
+                    drawPixelBlock(23 + legB, 26, 4, 6, "#166534");
+                    break;
+
+                case 18: // Fuecoco
+                    ctx.fillStyle = "#facc15"; ctx.fillRect(19, 1, 3, 5);
+                    drawPixelBlock(10, 6, 20, 23, "#ef4444");
+                    drawPixelBlock(13, 11, 14, 12, "#ffffff");
+                    drawEye(15, 13); drawEye(23, 13);
+                    drawPixelBlock(11 + legA, 27, 5, 5, "#b91c1c");
+                    drawPixelBlock(23 + legB, 27, 5, 5, "#b91c1c");
+                    break;
+
+                case 19: // Quaxly
+                    drawPixelBlock(12, 1, 16, 7, "#0284c7");
+                    drawPixelBlock(11, 7, 18, 21, "#38bdf8");
+                    drawPixelBlock(15, 13, 10, 5, "#f97316");
+                    drawEye(15, 10); drawEye(22, 10);
+                    drawPixelBlock(12 + legA, 26, 4, 6, "#f97316");
+                    drawPixelBlock(22 + legB, 26, 4, 6, "#f97316");
+                    break;
+
+                case 20: // Mewtwo
+                    drawPixelBlock(2, 14, 9, 5, "#a855f7");
+                    drawPixelBlock(11, 5, 18, 24, "#e9d5ff");
+                    drawPixelBlock(15, 13, 10, 10, "#a855f7");
+                    drawEye(15, 8); drawEye(22, 8);
+                    drawPixelBlock(12 + legA, 27, 5, 7, "#6b21a8");
+                    drawPixelBlock(22 + legB, 27, 5, 7, "#6b21a8");
+                    break;
+            }
+
+            ctx.restore();
+        }
+
+        // --- GAME STATE & VARIABLES ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let gameState = 'MENU';
+        let score = 0;
+        let highScore = parseInt(localStorage.getItem('poke_retro_highscore') || '0');
+        let coinsCollected = 0;
+        let ballsCount = parseInt(localStorage.getItem('poke_retro_balls') || '10');
+        let distance = 0;
+        let gameSpeed = 6;
+        let frameTicks = 0;
+
+        let unlockedPokemon = JSON.parse(localStorage.getItem('poke_retro_unlocked') || '[1]');
+        let activePokemonId = parseInt(localStorage.getItem('poke_retro_active') || '1');
+
+        const BIOMES = [
+            { name: "🌿 綠色草原", bgTop: "#1e3a8a", bgBot: "#38bdf8", ground: "#15803d", accent: "#166534" },
+            { name: "🌲 密林深處", bgTop: "#064e3b", bgBot: "#0d9488", ground: "#14532d", accent: "#052e16" },
+            { name: "🏖️ 蔚藍海岸", bgTop: "#0c4a6e", bgBot: "#38bdf8", ground: "#eab308", accent: "#ca8a04" },
+            { name: "🌋 火山地帶", bgTop: "#451a03", bgBot: "#c2410c", ground: "#292524", accent: "#1c1917" },
+            { name: "🌌 夜晚星空", bgTop: "#020617", bgBot: "#1e1b4b", ground: "#312e81", accent: "#1e1b4b" }
+        ];
+        let currentBiomeIdx = 0;
+
+        const runner = {
+            x: 80,
+            y: 360,
+            w: 60,
+            h: 60,
+            vy: 0,
+            gravity: 0.75,
+            isJumping: false,
+            jumpCount: 0,
+            maxJumps: 2,
+            isDucking: false,
+            shieldActive: false,
+            reset() {
+                this.y = 360;
+                this.vy = 0;
+                this.isJumping = false;
+                this.jumpCount = 0;
+                this.isDucking = false;
+                this.shieldActive = false;
+            }
+        };
+
+        let obstacles = [];
+        let items = [];
+        let wildEncounters = [];
+        let pokeBallsInAir = [];
+        let particles = [];
+        let caughtThisRun = 0;
+
+        function saveData() {
+            localStorage.setItem('poke_retro_highscore', highScore);
+            localStorage.setItem('poke_retro_balls', ballsCount);
+            localStorage.setItem('poke_retro_unlocked', JSON.stringify(unlockedPokemon));
+            localStorage.setItem('poke_retro_active', activePokemonId);
+        }
+
+        // --- SPAWN MANAGERS ---
+        function spawnObstacle() {
+            const types = ['rock', 'tree', 'bush', 'flying'];
+            const type = types[Math.floor(Math.random() * types.length)];
+
+            if (type === 'flying') {
+                obstacles.push({
+                    x: canvas.width + 50,
+                    y: 260 - Math.random() * 80,
+                    w: 46,
+                    h: 34,
+                    type: 'flying'
+                });
+            } else {
+                obstacles.push({
+                    x: canvas.width + 50,
+                    y: 375,
+                    w: type === 'tree' ? 40 : 44,
+                    h: type === 'tree' ? 52 : 40,
+                    type: type
+                });
+            }
+        }
+
+        function spawnItem() {
+            const itemTypes = ['ball', 'coin', 'shield', 'star'];
+            const type = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+            items.push({
+                x: canvas.width + 50,
+                y: 310 - Math.random() * 80,
+                w: 28,
+                h: 28,
+                type: type
+            });
+        }
+
+        function spawnWildPokemon() {
+            const rand = Math.random();
+            let pool = POKEMON_DATA;
+            if (rand > 0.95) pool = POKEMON_DATA.filter(p => p.rarity === 'Legendary');
+            else if (rand > 0.75) pool = POKEMON_DATA.filter(p => p.rarity === 'Epic');
+            else if (rand > 0.45) pool = POKEMON_DATA.filter(p => p.rarity === 'Rare');
+            else pool = POKEMON_DATA.filter(p => p.rarity === 'Common');
+
+            const p = pool[Math.floor(Math.random() * pool.length)];
+
+            wildEncounters.push({
+                x: canvas.width + 60,
+                y: 360,
+                w: 60,
+                h: 60,
+                data: p
+            });
+
+            const banner = document.getElementById('encounterBanner');
+            document.getElementById('encounterName').innerText = `${p.name} (${p.rarity})`;
+            banner.classList.remove('hidden');
+            setTimeout(() => banner.classList.add('hidden'), 3500);
+        }
+
+        function throwPokeBall() {
+            if (ballsCount <= 0 || gameState !== 'PLAYING') return;
+            ballsCount--;
+            document.getElementById('hudBalls').innerText = ballsCount;
+            document.getElementById('menuBalls').innerText = ballsCount;
+            saveData();
+
+            pokeBallsInAir.push({
+                x: runner.x + 40,
+                y: runner.y + 15,
+                vx: 13,
+                vy: -6,
+                radius: 10,
+                rotation: 0
+            });
+            sfx.playTone(420, 'sine', 0.1, 0.1);
+        }
+
+        function triggerParticles(x, y, color, count = 12) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    life: 1.0,
+                    color: color
+                });
+            }
+        }
+
+        // --- RENDER ENGINE ---
+        function drawParallaxBackground() {
+            const biome = BIOMES[currentBiomeIdx];
+
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, biome.bgTop);
+            grad.addColorStop(1, biome.bgBot);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Mountain Far Layer
+            ctx.fillStyle = biome.accent;
+            ctx.globalAlpha = 0.35;
+            const mountainOffset = (distance * 0.15) % 240;
+            for (let i = -1; i < 6; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * 240 - mountainOffset, 420);
+                ctx.lineTo(i * 240 + 120 - mountainOffset, 240);
+                ctx.lineTo(i * 240 + 240 - mountainOffset, 420);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Ground Floor
+            ctx.fillStyle = biome.ground;
+            ctx.fillRect(0, 420, canvas.width, 120);
+
+            // Ground Decorative Tiles
+            ctx.fillStyle = biome.accent;
+            const groundOffset = (distance * gameSpeed) % 40;
+            for (let x = -groundOffset; x < canvas.width; x += 40) {
+                ctx.fillRect(x, 424, 22, 5);
+                ctx.fillRect(x + 12, 442, 16, 4);
+            }
+        }
+
+        function drawObstacles() {
+            obstacles.forEach(o => {
+                if (o.type === 'rock') {
+                    ctx.fillStyle = "#475569"; ctx.fillRect(o.x, o.y + 6, o.w, o.h - 6);
+                    ctx.fillStyle = "#64748b"; ctx.fillRect(o.x + 4, o.y, o.w - 8, 8);
+                } else if (o.type === 'tree') {
+                    ctx.fillStyle = "#451a03"; ctx.fillRect(o.x + 14, o.y + 18, 12, 34);
+                    ctx.fillStyle = "#15803d"; ctx.beginPath(); ctx.arc(o.x + 20, o.y + 16, 20, 0, Math.PI * 2); ctx.fill();
+                } else if (o.type === 'bush') {
+                    ctx.fillStyle = "#166534"; ctx.beginPath(); ctx.arc(o.x + 14, o.y + 20, 15, 0, Math.PI * 2); ctx.arc(o.x + 30, o.y + 18, 16, 0, Math.PI * 2); ctx.fill();
+                } else if (o.type === 'flying') {
+                    const flap = Math.floor(frameTicks / 8) % 2 === 0 ? 0 : 8;
+                    ctx.fillStyle = "#64748b"; ctx.fillRect(o.x, o.y + flap, o.w, o.h - 10);
+                    ctx.fillStyle = "#ef4444"; ctx.fillRect(o.x + o.w - 8, o.y + flap + 2, 8, 4);
+                }
+            });
+        }
+
+        function drawItems() {
+            items.forEach(it => {
+                ctx.save();
+                ctx.translate(it.x + 14, it.y + 14);
+                if (it.type === 'ball') {
+                    ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+                    ctx.beginPath(); ctx.arc(0, 0, 11, Math.PI, 0); ctx.fillStyle = "#dc2626"; ctx.fill();
+                    ctx.fillStyle = "#000000"; ctx.fillRect(-11, -1, 22, 2);
+                    ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+                } else if (it.type === 'coin') {
+                    ctx.fillStyle = "#facc15"; ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = "#ca8a04"; ctx.font = "bold 11px sans-serif"; ctx.fillText("$", -3, 4);
+                } else if (it.type === 'shield') {
+                    ctx.fillStyle = "#38bdf8"; ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = "#ffffff"; ctx.font = "11px sans-serif"; ctx.fillText("🛡️", -6, 4);
+                } else if (it.type === 'star') {
+                    ctx.fillStyle = "#eab308"; ctx.font = "16px sans-serif"; ctx.fillText("⭐", -8, 6);
+                }
+                ctx.restore();
+            });
+        }
+
+        function drawWildEncounters() {
+            wildEncounters.forEach(w => {
+                drawRetroPixelPokemon(ctx, w.data.id, w.x, w.y, w.w, frameTicks, 'run');
+                ctx.font = "bold 10px sans-serif";
+                ctx.fillStyle = w.data.rarity === 'Legendary' ? '#f472b6' : (w.data.rarity === 'Epic' ? '#c084fc' : '#fde047');
+                ctx.fillText(`${w.data.name}`, w.x, w.y - 8);
+            });
+        }
+
+        function drawPokeBallsInAir() {
+            pokeBallsInAir.forEach(b => {
+                ctx.save();
+                ctx.translate(b.x, b.y);
+                ctx.rotate(b.rotation);
+                ctx.beginPath(); ctx.arc(0, 0, b.radius, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+                ctx.beginPath(); ctx.arc(0, 0, b.radius, Math.PI, 0); ctx.fillStyle = "#dc2626"; ctx.fill();
+                ctx.fillStyle = "#000000"; ctx.fillRect(-b.radius, -1, b.radius * 2, 2);
+                ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fillStyle = "#ffffff"; ctx.fill();
+                ctx.restore();
+            });
+        }
+
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(p.x, p.y, 4, 4);
+            });
+            ctx.globalAlpha = 1.0;
+        }
+
+        // --- UPDATE LOOP ---
+        function update() {
+            if (gameState !== 'PLAYING') return;
+
+            frameTicks++;
+            distance += 0.1;
+            score += Math.floor(1 + (activePokemonId === 14 ? 0.15 : 0));
+            gameSpeed = 6 + Math.floor(distance / 500) * 0.8;
+
+            currentBiomeIdx = Math.floor(distance / 500) % BIOMES.length;
+            document.getElementById('hudSceneBadge').innerText = BIOMES[currentBiomeIdx].name;
+
+            runner.vy += runner.gravity;
+            runner.y += runner.vy;
+
+            if (runner.y >= 360) {
+                runner.y = 360;
+                runner.vy = 0;
+                runner.isJumping = false;
+                runner.jumpCount = 0;
+            }
+
+            runner.h = runner.isDucking ? 36 : 60;
+
+            if (frameTicks % Math.max(38, 105 - Math.floor(gameSpeed * 3)) === 0) spawnObstacle();
+            if (frameTicks % 210 === 0) spawnItem();
+            if (frameTicks % 420 === 0) spawnWildPokemon();
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const o = obstacles[i];
+                o.x -= gameSpeed;
+
+                if (runner.x < o.x + o.w && runner.x + runner.w > o.x &&
+                    runner.y < o.y + o.h && runner.y + runner.h > o.y) {
+
+                    if (runner.shieldActive || activePokemonId === 3) {
+                        runner.shieldActive = false;
+                        triggerParticles(o.x, o.y, "#38bdf8", 16);
+                        obstacles.splice(i, 1);
+                        sfx.hit();
+                        continue;
+                    }
+
+                    if (activePokemonId === 7 && Math.random() < 0.4) {
+                        triggerParticles(runner.x, runner.y, "#a855f7", 8);
+                        continue;
+                    }
+
+                    handleGameOver();
+                    return;
+                }
+
+                if (o.x < -60) obstacles.splice(i, 1);
+            }
+
+            for (let i = items.length - 1; i >= 0; i--) {
+                const it = items[i];
+                it.x -= gameSpeed;
+
+                if (activePokemonId === 2 && Math.abs(it.x - runner.x) < 160) {
+                    it.y += (runner.y - it.y) * 0.1;
+                }
+
+                if (runner.x < it.x + it.w && runner.x + runner.w > it.x &&
+                    runner.y < it.y + it.h && runner.y + runner.h > it.y) {
+
+                    if (it.type === 'ball') { ballsCount += 3; sfx.coin(); }
+                    else if (it.type === 'coin') { coinsCollected += (activePokemonId === 2 ? 2 : 1); score += 100; sfx.coin(); }
+                    else if (it.type === 'shield') { runner.shieldActive = true; sfx.coin(); }
+                    else if (it.type === 'star') { score += 300; sfx.coin(); }
+
+                    triggerParticles(it.x, it.y, "#facc15", 8);
+                    items.splice(i, 1);
+                    document.getElementById('hudBalls').innerText = ballsCount;
+                }
+                if (it.x < -40) items.splice(i, 1);
+            }
+
+            for (let i = wildEncounters.length - 1; i >= 0; i--) {
+                const w = wildEncounters[i];
+                w.x -= gameSpeed;
+
+                for (let j = pokeBallsInAir.length - 1; j >= 0; j--) {
+                    const b = pokeBallsInAir[j];
+                    if (Math.hypot(b.x - (w.x + 30), b.y - (w.y + 30)) < 36) {
+                        const catchRoll = Math.random();
+                        if (catchRoll <= w.data.catchRate) {
+                            sfx.catchSuccess();
+                            triggerParticles(w.x, w.y, "#ef4444", 28);
+                            if (!unlockedPokemon.includes(w.data.id)) unlockedPokemon.push(w.data.id);
+                            caughtThisRun++;
+                            saveData();
+                            renderDexGrid();
+                        } else {
+                            sfx.hit();
+                            triggerParticles(w.x, w.y, "#94a3b8", 12);
+                        }
+
+                        pokeBallsInAir.splice(j, 1);
+                        wildEncounters.splice(i, 1);
+                        break;
+                    }
+                }
+
+                if (w.x < -70) wildEncounters.splice(i, 1);
+            }
+
+            for (let i = pokeBallsInAir.length - 1; i >= 0; i--) {
+                const b = pokeBallsInAir[i];
+                b.x += b.vx;
+                b.y += b.vy;
+                b.vy += 0.3;
+                b.rotation += 0.2;
+                if (b.y > 420 || b.x > canvas.width) pokeBallsInAir.splice(i, 1);
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.03;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            document.getElementById('hudScore').innerText = String(score).padStart(6, '0');
+            document.getElementById('hudHighScore').innerText = String(highScore).padStart(6, '0');
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawParallaxBackground();
+            drawObstacles();
+            drawItems();
+            drawWildEncounters();
+            drawPokeBallsInAir();
+            drawParticles();
+
+            const action = runner.isJumping ? 'jump' : (runner.isDucking ? 'duck' : 'run');
+            drawRetroPixelPokemon(ctx, activePokemonId, runner.x, runner.y, runner.w, frameTicks, action);
+
+            if (runner.shieldActive) {
+                ctx.strokeStyle = "#38bdf8";
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(runner.x + 30, runner.y + 30, 36, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- GAME CONTROLS & UI ---
+        function startGame() {
+            gameState = 'PLAYING';
+            score = 0;
+            distance = 0;
+            coinsCollected = 0;
+            caughtThisRun = 0;
+            obstacles = [];
+            items = [];
+            wildEncounters = [];
+            pokeBallsInAir = [];
+            runner.reset();
+
+            document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('hudOverlay').classList.remove('hidden');
+            document.getElementById('touchControls').classList.remove('hidden');
+        }
+
+        function handleGameOver() {
+            gameState = 'GAMEOVER';
+            sfx.hit();
+            if (score > highScore) {
+                highScore = score;
+                saveData();
+            }
+
+            document.getElementById('goScore').innerText = score;
+            document.getElementById('goHighScore').innerText = highScore;
+            document.getElementById('goCoins').innerText = `🪙 ${coinsCollected}`;
+            document.getElementById('goCaught').innerText = caughtThisRun;
+
+            document.getElementById('hudOverlay').classList.add('hidden');
+            document.getElementById('touchControls').classList.add('hidden');
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+
+        function renderDexGrid() {
+            const grid = document.getElementById('dexGrid');
+            grid.innerHTML = '';
+            document.getElementById('unlockedCount').innerText = unlockedPokemon.length;
+
+            POKEMON_DATA.forEach(p => {
+                const isUnlocked = unlockedPokemon.includes(p.id);
+                const isActive = activePokemonId === p.id;
+
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-xl border flex flex-col items-center justify-between relative transition-all ${
+                    isActive ? 'bg-amber-950/80 border-amber-400 ring-2 ring-amber-400' :
+                    (isUnlocked ? 'bg-slate-900 border-slate-700 hover:border-slate-500 cursor-pointer' : 'bg-slate-950/80 border-slate-800 opacity-60')
+                }`;
+
+                const cardCanvasId = `retro_dex_canvas_${p.id}`;
+                card.innerHTML = `
+                    <div class="w-20 h-20 flex items-center justify-center relative">
+                        <canvas id="${cardCanvasId}" width="64" height="64" class="w-16 h-16"></canvas>
+                        ${!isUnlocked ? '<div class="absolute inset-0 flex items-center justify-center text-xl">🔒</div>' : ''}
+                    </div>
+                    <div class="text-center mt-1">
+                        <div class="text-xs font-bold ${isUnlocked ? 'text-white' : 'text-slate-500'}">${p.name}</div>
+                        <div class="text-[9px] text-amber-400">${p.rarity}</div>
+                    </div>
+                    ${isActive ? '<span class="text-[9px] bg-amber-500 text-slate-950 font-bold px-2 py-0.5 rounded mt-1">出戰中</span>' : ''}
+                `;
+
+                if (isUnlocked && !isActive) {
+                    card.onclick = () => {
+                        activePokemonId = p.id;
+                        saveData();
+                        updateShowcase();
+                        renderDexGrid();
+                    };
+                }
+
+                grid.appendChild(card);
+
+                setTimeout(() => {
+                    const c = document.getElementById(cardCanvasId);
+                    if (c) {
+                        const cCtx = c.getContext('2d');
+                        drawRetroPixelPokemon(cCtx, p.id, 0, 0, 64, 0, 'run');
+                    }
+                }, 0);
+            });
+        }
+
+        function updateShowcase() {
+            const p = POKEMON_DATA.find(item => item.id === activePokemonId) || POKEMON_DATA[0];
+            document.getElementById('showcaseName').innerText = `${p.name} ${p.enName}`;
+            document.getElementById('showcaseRarity').innerText = p.rarity;
+            document.getElementById('showcaseSkill').innerText = `⚡ ${p.skill}`;
+
+            const c = document.getElementById('showcaseCanvas');
+            const cCtx = c.getContext('2d');
+            cCtx.clearRect(0, 0, c.width, c.height);
+            drawRetroPixelPokemon(cCtx, p.id, 12, 12, 104, 0, 'run');
+        }
+
+        function handleJump() {
+            if (gameState === 'PLAYING') {
+                if (runner.jumpCount < runner.maxJumps) {
+                    runner.vy = -13;
+                    runner.jumpCount++;
+                    runner.isJumping = true;
+                    sfx.jump();
+                    triggerParticles(runner.x + 30, runner.y + 50, "#ffffff", 8);
+                }
+            } else if (gameState === 'MENU') {
+                startGame();
+            }
+        }
+
+        function handleDuck(enable) {
+            if (gameState === 'PLAYING') {
+                runner.isDucking = enable;
+                if (enable && runner.isJumping) runner.vy += 7;
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); handleJump(); }
+            if (e.code === 'ArrowDown') { e.preventDefault(); handleDuck(true); }
+            if (e.code === 'KeyX') { e.preventDefault(); throwPokeBall(); }
+            if (e.code === 'KeyR' && gameState === 'GAMEOVER') { startGame(); }
+            if (e.code === 'Escape') {
+                document.getElementById('dexModal').classList.add('hidden');
+                document.getElementById('instructionsModal').classList.add('hidden');
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowDown') handleDuck(false);
+        });
+
+        document.getElementById('touchJump').onclick = handleJump;
+        document.getElementById('touchDuck').ontouchstart = () => handleDuck(true);
+        document.getElementById('touchDuck').ontouchend = () => handleDuck(false);
+        document.getElementById('touchCatch').onclick = throwPokeBall;
+
+        document.getElementById('btnStart').onclick = startGame;
+        document.getElementById('btnRestart').onclick = startGame;
+        document.getElementById('btnMenu').onclick = () => {
+            gameState = 'MENU';
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            document.getElementById('menuScreen').classList.remove('hidden');
+        };
+
+        document.getElementById('btnDex').onclick = () => {
+            renderDexGrid();
+            document.getElementById('dexModal').classList.remove('hidden');
+            document.getElementById('dexModal').classList.add('flex');
+        };
+        document.getElementById('btnCloseDex').onclick = () => {
+            document.getElementById('dexModal').classList.add('hidden');
+        };
+
+        document.getElementById('btnInstructions').onclick = () => {
+            document.getElementById('instructionsModal').classList.remove('hidden');
+            document.getElementById('instructionsModal').classList.add('flex');
+        };
+        document.getElementById('btnCloseInstructions').onclick = () => {
+            document.getElementById('instructionsModal').classList.add('hidden');
+        };
+
+        window.onload = () => {
+            document.getElementById('menuHighScore').innerText = highScore;
+            document.getElementById('menuBalls').innerText = ballsCount;
+            document.getElementById('hudHighScore').innerText = String(highScore).padStart(6, '0');
+
+            updateShowcase();
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
